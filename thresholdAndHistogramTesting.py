@@ -78,3 +78,4 @@ titles = ['Original Image','Thresholded Image (Otsu)']
 images = [img, thresh1]
 
 plot_images(images, titles, 2)
+

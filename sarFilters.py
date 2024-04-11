@@ -3,7 +3,7 @@
 import cv2
 import numpy as np
 
-from plotFunctions import *
+from plotFunctions import plot_images
 
 def lee_filter(image, window_size):
     # Convert image to float32
@@ -130,7 +130,7 @@ def local_contrast_enhancement(image, neighborhood_size=15, clip_limit=2.0):
     
     return enhanced_image
 
-def applyPipeline(sar_image, filterType):
+def applyPipeline(sar_image, filterType, draw = False):
        
     kernel = np.ones((3,3), dtype = np.uint8)
 
@@ -162,7 +162,10 @@ def applyPipeline(sar_image, filterType):
     eroded1 = cv2.erode(threshClosing, kernel, iterations = 1)
     eroded2 = cv2.erode(threshClosing, kernel, iterations = 2)
     
-    images = [sar_image, thresh_img,  filtered,          filteredThresh,              threshClosing,                  eroded1,                          eroded2]
-    titles = ['Original','thresh', filterType+'Filter', 'thres+'+filterType, 't+'+filterType[0]+'+closing','t+'+filterType[0]+'+closing+erode(1)','t+'+filterType[0]+'+closing+erode(2)']
-        
-    plot_images(images, titles, 7)  
+    if draw == True:
+        images = [sar_image, thresh_img,  filtered,          filteredThresh,              threshClosing,                  eroded1,                          eroded2]
+        titles = ['Original','thresh', filterType+'Filter', 'thres+'+filterType, 't+'+filterType[0]+'+closing','t+'+filterType[0]+'+closing+erode(1)','t+'+filterType[0]+'+closing+erode(2)']
+            
+        plot_images(images, titles, 7)  
+    
+    return filtered, filteredThresh, threshClosing, eroded1, eroded2

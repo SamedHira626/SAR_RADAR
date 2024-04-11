@@ -6,9 +6,9 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-from morphologicalFunctions import *
-from sarFilters import *
-from plotFunctions import *
+from morphologicalFunctions import applyErode, applyDilate, applyOpening, applyClosing, applyThreshold
+from sarFilters import lee_filter, gamma_filter, kuan_filter, median_filter, sigma_filter, local_contrast_enhancement, frost_filter
+from plotFunctions import plot_images
 
 sar_image = cv2.imread('media/small.png', cv2.IMREAD_GRAYSCALE)
 
