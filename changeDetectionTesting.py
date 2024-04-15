@@ -112,3 +112,46 @@ images = [image1, image2, changes]
 titles = ['image1','image2','Intensity-based Changes']
 
 plot_images(images, titles, 3)
+
+#%% CHANGE DETECTION TESTING - K-MEANS CLUSTERING BASED CHANGE DETECTION
+
+def unsupervised_change_detection(img1, img2, num_clusters):
+    """
+    Perform unsupervised change detection using k-means clustering
+    """
+    assert img1.shape == img2.shape, "Images must have the same size"
+    
+    # Stack images vertically for clustering
+    stacked_img = np.hstack((img1, img2))
+    
+    # Reshape stacked image for k-means clustering
+    stacked_img_flat = stacked_img.reshape((-1, 1))
+
+    # Convert to float32
+    stacked_img_flat = np.float32(stacked_img_flat)
+    
+    # Define criteria and apply kmeans()
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
+    ret, label, center = cv2.kmeans(stacked_img_flat, num_clusters, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+    
+    # Reshape labels to match the shape of the stacked image
+    label = label.reshape(stacked_img.shape[:2])
+    
+    # Split label into two separate images
+    height, width = img1.shape[:2]
+    label_img1 = label[:, :width]
+    label_img2 = label[:, width:]
+    
+    # Create binary mask for changed pixels
+    change_mask = np.uint8(label_img1 != label_img2) * 255
+    
+    return change_mask
+
+# Perform unsupervised change detection
+num_clusters = 2  # Assuming two classes: unchanged and changed
+change_mask = unsupervised_change_detection(image1, image2, num_clusters)
+
+images = [image1, image2, change_mask]
+titles = ['image1','image2','Changes']
+
+plot_images(images, titles, 3)

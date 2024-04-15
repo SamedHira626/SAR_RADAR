@@ -5,7 +5,10 @@ import matplotlib.pyplot as plt
 
 def plot_images(images, headers, num):
 
-    if num <= 6:
+    if num <= 3:
+        rows = 1
+        cols = num
+    elif num <= 6:
         rows = 2
         cols = 3
     else:
