@@ -3,7 +3,7 @@
 import cv2
 import numpy as np
 
-from sarFilters import applyPipeline
+from sarFilters import applyPipeline, lee_filter, median_filter
 from plotFunctions import plot_images
 
 image = sar_image = cv2.imread('media/small.png', cv2.IMREAD_GRAYSCALE)
@@ -77,7 +77,7 @@ def detect_changes(coherence, threshold=0.8):
     change_mask = (coherence < threshold).astype(np.uint8) * 255
     
     return change_mask
-
+    
 coherence = compute_coherence(image1, image2)
 
 if coherence is not None:
@@ -86,7 +86,7 @@ else:
     print("Coherence computation failed. Check input images and paths.")
 
 images = [image1, image2, change_mask]
-titles = ['image','image2','change']
+titles = ['image1','image2','coherence change']
 
 plot_images(images, titles, 3)
 
@@ -115,7 +115,7 @@ plot_images(images, titles, 3)
 
 #%% CHANGE DETECTION TESTING - K-MEANS CLUSTERING BASED CHANGE DETECTION
 
-def unsupervised_change_detection(img1, img2, num_clusters):
+def unsupervised_change_detection(img1, img2, num_clusters): #TODO try with first image and try to remove differences
     """
     Perform unsupervised change detection using k-means clustering
     """
@@ -151,7 +151,11 @@ def unsupervised_change_detection(img1, img2, num_clusters):
 num_clusters = 2  # Assuming two classes: unchanged and changed
 change_mask = unsupervised_change_detection(image1, image2, num_clusters)
 
-images = [image1, image2, change_mask]
-titles = ['image1','image2','Changes']
+image1_crop = image1[200:260,75:180]
+image2_crop = image2[200:260,75:180]
+change_crop = change_mask[200:260,75:180]
 
-plot_images(images, titles, 3)
+images = [image1,   image2,     change_mask,    image1_crop, image2_crop,   change_crop]
+titles = ['image1','image2','k-means changes', 'image1_crop','image2_crop','changes diff']
+
+plot_images(images, titles, 6)
