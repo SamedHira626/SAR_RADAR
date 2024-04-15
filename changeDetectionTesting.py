@@ -2,7 +2,6 @@
 
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
 from sarFilters import applyPipeline
 from plotFunctions import plot_images
@@ -10,6 +9,8 @@ from plotFunctions import plot_images
 image = sar_image = cv2.imread('media/small.png', cv2.IMREAD_GRAYSCALE)
 image1 = cv2.imread('media/small1.png', cv2.IMREAD_GRAYSCALE)
 image2 = cv2.imread('media/small2.png', cv2.IMREAD_GRAYSCALE)
+
+cv2.circle(image2, (95,240), 10, (60,60,60), cv2.FILLED)
 
 #%% TESTING PIPELINE for NOISE FILTERING ON IMAGES
 
@@ -24,8 +25,6 @@ applyPipeline(sar_image, "lee", True)
 #applyPipeline(image, "lce")
 
 #%% CHANGE DETECTION TESTING - DIFFERENCING
-
-cv2.circle(image2, (100,150), 20, (50,50,50), cv2.FILLED)
 
 # Calculate absolute difference between the two images
 difference = cv2.absdiff(image1, image2)
@@ -46,48 +45,48 @@ difference_ = difference[200:260,75:180]
 difference2_ = difference2[200:260,75:180]
 
 images = [image1, image2, img1Cropped, img2Cropped, difference, thresholded, difference2, difference_, difference2_]
-titles = ['image','image2','crop1','crop2','orjDifference', 'thresholdedDif', 'pipelinedDif','orjDif1','pipelinedDif2']
+titles = ['image','image2','crop1','crop2','orjDifference', 'thresholdedDif', 'pipelinedDif','orjDifZoom','pipelinedDifZoom']
 
 plot_images(images, titles, 9)
-
 #%% CHANGE DETECTION TESTING - Coherence CHANGE DETECTION
 
-def calculate_coherence(image1, image2, window_size=3):
+def compute_coherence(img1_data, img2_data):
     
-    # Calculate cross-correlation between the two images
-    correlation = cv2.matchTemplate(image1, image2, cv2.TM_CCORR_NORMED)
-    
-    # Calculate coherence
-    coherence = np.abs(correlation)
-    
-    # Apply a window to smooth the coherence values
-    kernel = np.ones((window_size, window_size), np.float32) / (window_size * window_size)
-    coherence = cv2.filter2D(coherence, -1, kernel)
+    img1 = img1_data.astype(np.complex64)
+    img2 = img2_data.astype(np.complex64)
+
+    # compute absolute values
+    abs_img1 = np.abs(img1)
+    abs_img2 = np.abs(img2)
+       
+    # avoid division by zero
+    mask = (abs_img1 * abs_img2 == 0)
+    abs_img1[mask] = 1  # Set zero values to 1 to avoid division by zero
+    abs_img2[mask] = 1
+
+    # compute coherence
+    coherence = np.abs(np.conj(img1) * img2) / (np.abs(img1) * np.abs(img2))
     
     return coherence
-
-def detect_changes(coherence, threshold):
-    # Threshold the coherence to detect changes
-    changes = coherence < threshold
     
-    return changes
+def detect_changes(coherence, threshold=0.8):
+    # handle invalid values
+    coherence[np.isnan(coherence)] = 0
+    coherence[np.isinf(coherence)] = 0
+    
+    change_mask = (coherence < threshold).astype(np.uint8) * 255
+    
+    return change_mask
 
-# Load two images
-image1 = cv2.imread('media/small1.png', cv2.IMREAD_GRAYSCALE)
-image2 = cv2.imread('media/small2.png', cv2.IMREAD_GRAYSCALE)
+coherence = compute_coherence(image1, image2)
 
-# Calculate coherence
-coherence = calculate_coherence(image1, image2)
+if coherence is not None:
+    change_mask = detect_changes(coherence)
+else:
+    print("Coherence computation failed. Check input images and paths.")
 
-# Set a coherence threshold
-threshold = 0.5
-
-# Detect changes using coherence thresholding
-changes = detect_changes(coherence, threshold)
-changes = np.uint8(changes) * 255
-
-images = [image1, image2, changes]
-titles = ['image1','image2','Changes']
+images = [image1, image2, change_mask]
+titles = ['image','image2','change']
 
 plot_images(images, titles, 3)
 
@@ -103,10 +102,8 @@ def intensity_change_detection(image1, image2, threshold):
 
     return binary
 
-
-
 # Set intensity change threshold
-threshold = 30
+threshold = 180
 
 # Perform intensity-based change detection
 changes = intensity_change_detection(image1, image2, threshold)
