@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 
 from sarFilters import applyPipeline, lee_filter, median_filter
+from morphologicalFunctions import applyClosing, applyOpening
 from plotFunctions import plot_images
 
 image = sar_image = cv2.imread('media/small.png', cv2.IMREAD_GRAYSCALE)
@@ -25,12 +26,14 @@ applyPipeline(sar_image, "lee", True)
 #applyPipeline(image, "lce")
 
 #%% CHANGE DETECTION TESTING - DIFFERENCING
+kernel = np.ones((3,3), dtype = np.uint8)
 
 # Calculate absolute difference between the two images
-difference = cv2.absdiff(image1, image2)
+difference = cv2.absdiff(image, image2)
 
 # Threshold the difference image to get binary mask of changes
-_, thresholded = cv2.threshold(difference, 30, 255, cv2.THRESH_BINARY)
+_, thresholded = cv2.threshold(difference, 180, 255, cv2.THRESH_BINARY)
+thresholded = applyClosing(thresholded, kernel)
 
 #applyPipeline(difference, "median")
 _,_,_,_, eroded = applyPipeline(image1, "lee")
@@ -44,8 +47,8 @@ img2Cropped = image2[200:260,75:180]
 difference_ = difference[200:260,75:180]
 difference2_ = difference2[200:260,75:180]
 
-images = [image1, image2, img1Cropped, img2Cropped, difference, thresholded, difference2, difference_, difference2_]
-titles = ['image','image2','crop1','crop2','orjDifference', 'thresholdedDif', 'pipelinedDif','orjDifZoom','pipelinedDifZoom']
+images = [image1, image2, img1Cropped, img2Cropped, difference,     thresholded,      difference2,  difference_,   difference2_]
+titles = ['image','image2','crop1',     'crop2',  'orjDifference','thresholdedDif', 'pipelinedDif','orjDifZoom','pipelinedDifZoom']
 
 plot_images(images, titles, 9)
 #%% CHANGE DETECTION TESTING - Coherence CHANGE DETECTION
@@ -146,6 +149,11 @@ def unsupervised_change_detection(img1, img2, num_clusters): #TODO try with firs
     change_mask = np.uint8(label_img1 != label_img2) * 255
     
     return change_mask
+
+applyLeeFilter = True
+if True == applyLeeFilter:
+    image = median_filter(image, window_size=5)
+    image2 = median_filter(image2, window_size=5)
 
 # Perform unsupervised change detection
 num_clusters = 2  # Assuming two classes: unchanged and changed
