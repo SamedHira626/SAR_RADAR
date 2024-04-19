@@ -130,6 +130,19 @@ def local_contrast_enhancement(image, neighborhood_size=15, clip_limit=2.0):
     
     return enhanced_image
 
+def bilateral_filter(image, window_size):
+    
+    window_size = 3 #TODO remove when testing is done
+    
+    # define parameters for bilateral filter
+    diameter = window_size * window_size  # Diameter of each pixel neighborhood
+    sigma_color = 50  # Filter sigma in the color space
+    sigma_space = 75  # Filter sigma in the coordinate space
+    
+    # apply bilateral filtering
+    filtered_image = cv2.bilateralFilter(image, diameter, sigma_color, sigma_space)
+    return filtered_image
+
 def applyPipeline(sar_image, filterType, draw = False):
        
     kernel = np.ones((3,3), dtype = np.uint8)
@@ -144,6 +157,7 @@ def applyPipeline(sar_image, filterType, draw = False):
         "frost": lambda img, window_size= 5, alpha=1.5: frost_filter(img, window_size, alpha),
         "kuan": kuan_filter,
         "sigma": sigma_filter,
+        "bilateral": bilateral_filter,
         "lce" : lambda img, neighborhood_size=15, clip_limit=2.0: local_contrast_enhancement(img, neighborhood_size=15, clip_limit=2.0)
     }
     

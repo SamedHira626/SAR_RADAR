@@ -3,8 +3,8 @@
 import cv2
 import numpy as np
 
-from sarFilters import applyPipeline, lee_filter, median_filter
-from morphologicalFunctions import applyClosing, applyOpening
+from sarFilters import applyPipeline, median_filter, lee_filter, bilateral_filter
+from morphologicalFunctions import applyClosing
 from plotFunctions import plot_images
 
 image = sar_image = cv2.imread('media/small.png', cv2.IMREAD_GRAYSCALE)
@@ -17,15 +17,27 @@ cv2.circle(image2, (95,240), 10, (60,60,60), cv2.FILLED)
 
 applyPipeline(sar_image, "median", True)
 #applyPipeline(sar_image, "kuan")
-applyPipeline(sar_image, "lee", True)
+applyPipeline(sar_image, "lee")
 #applyPipeline(sar_image, "frost")
 #applyPipeline(sar_image, "gamma")
 #applyPipeline(sar_image, "sigma")
+applyPipeline(sar_image, "bilateral")
+
+window_size = 3
+
+median = median_filter(image1, window_size)
+lee = lee_filter(image1, window_size)
+bilateral = bilateral_filter(image1, window_size)
+
+images = [median, lee, bilateral]
+titles = ['median_filter','lee_filter','bilateral_filter']    
+plot_images(images, titles, len(images))
 
 #image = cv2.cvtColor(sar_image, cv2.COLOR_GRAY2BGR)
 #applyPipeline(image, "lce")
 
 #%% CHANGE DETECTION TESTING - DIFFERENCING
+
 kernel = np.ones((3,3), dtype = np.uint8)
 
 # Calculate absolute difference between the two images
@@ -50,7 +62,7 @@ difference2_ = difference2[200:260,75:180]
 images = [image1, image2, img1Cropped, img2Cropped, difference,     thresholded,      difference2,  difference_,   difference2_]
 titles = ['image','image2','crop1',     'crop2',  'orjDifference','thresholdedDif', 'pipelinedDif','orjDifZoom','pipelinedDifZoom']
 
-plot_images(images, titles, 9)
+plot_images(images, titles, len(images))
 #%% CHANGE DETECTION TESTING - Coherence CHANGE DETECTION
 
 def compute_coherence(img1_data, img2_data):
@@ -91,7 +103,7 @@ else:
 images = [image1, image2, change_mask]
 titles = ['image1','image2','coherence change']
 
-plot_images(images, titles, 3)
+plot_images(images, titles, len(images))
 
 #%% CHANGE DETECTION TESTING - INTENSITY BASED CHANGE DETECTION
 
@@ -114,7 +126,7 @@ changes = intensity_change_detection(image1, image2, threshold)
 images = [image1, image2, changes]
 titles = ['image1','image2','Intensity-based Changes']
 
-plot_images(images, titles, 3)
+plot_images(images, titles, len(images))
 
 #%% CHANGE DETECTION TESTING - K-MEANS CLUSTERING BASED CHANGE DETECTION
 
@@ -152,8 +164,8 @@ def unsupervised_change_detection(img1, img2, num_clusters): #TODO try with firs
 
 applyLeeFilter = True
 if True == applyLeeFilter:
-    image = median_filter(image, window_size=5)
-    image2 = median_filter(image2, window_size=5)
+    image = lee_filter(image, window_size=5)
+    image2 = lee_filter(image2, window_size=5)
 
 # Perform unsupervised change detection
 num_clusters = 2  # Assuming two classes: unchanged and changed
@@ -166,4 +178,4 @@ change_crop = change_mask[200:260,75:180]
 images = [image1,   image2,     change_mask,    image1_crop, image2_crop,   change_crop]
 titles = ['image1','image2','k-means changes', 'image1_crop','image2_crop','changes diff']
 
-plot_images(images, titles, 6)
+plot_images(images, titles, len(images))
