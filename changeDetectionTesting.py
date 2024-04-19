@@ -7,11 +7,17 @@ from sarFilters import applyPipeline, median_filter, lee_filter, bilateral_filte
 from morphologicalFunctions import applyClosing
 from plotFunctions import plot_images
 
-image = sar_image = cv2.imread('media/small.png', cv2.IMREAD_GRAYSCALE)
-image1 = cv2.imread('media/small1.png', cv2.IMREAD_GRAYSCALE)
-image2 = cv2.imread('media/small2.png', cv2.IMREAD_GRAYSCALE)
+if 1:
+    image = sar_image = cv2.imread('media/small.png', cv2.IMREAD_GRAYSCALE)
+    image1 = cv2.imread('media/small1.png', cv2.IMREAD_GRAYSCALE)
+    image2 = cv2.imread('media/small2.png', cv2.IMREAD_GRAYSCALE)
+    cv2.circle(image2, (95,240), 10, (60,60,60), cv2.FILLED)
+else:
+    image = sar_image = cv2.imread('media/vhf1.jpg', cv2.IMREAD_GRAYSCALE)
+    image1 = cv2.imread('media/vhf1.jpg', cv2.IMREAD_GRAYSCALE)
+    image2 = cv2.imread('media/vhf2.jpg', cv2.IMREAD_GRAYSCALE)
 
-cv2.circle(image2, (95,240), 10, (60,60,60), cv2.FILLED)
+
 
 #%% TESTING PIPELINE for NOISE FILTERING ON IMAGES
 
@@ -27,10 +33,11 @@ window_size = 3
 
 median = median_filter(image1, window_size)
 lee = lee_filter(image1, window_size)
+lee2 = np.uint8(lee)
 bilateral = bilateral_filter(image1, window_size)
 
-images = [median, lee, bilateral]
-titles = ['median_filter','lee_filter','bilateral_filter']    
+images = [image1, median, lee, bilateral,lee2]
+titles = ['orj','median_filter','lee_filter','bilateral_filter','lee2']    
 plot_images(images, titles, len(images))
 
 #image = cv2.cvtColor(sar_image, cv2.COLOR_GRAY2BGR)
@@ -41,29 +48,36 @@ plot_images(images, titles, len(images))
 kernel = np.ones((3,3), dtype = np.uint8)
 
 # Calculate absolute difference between the two images
-difference = cv2.absdiff(image, image2)
+difference = cv2.absdiff(image, image2) #equals to np.abs(image.astype(np.int8) - image2.astype(np.int8))
 
 # Threshold the difference image to get binary mask of changes
 _, thresholded = cv2.threshold(difference, 180, 255, cv2.THRESH_BINARY)
-thresholded = applyClosing(thresholded, kernel)
+#thresholded = applyClosing(thresholded, kernel)
 
 #applyPipeline(difference, "median")
-_,_,_,_, eroded = applyPipeline(image1, "lee")
+_,_,_,_, eroded = applyPipeline(image, "lee")
 _,_,_,_, eroded_ = applyPipeline(image2, "lee")
 
 difference2 = cv2.absdiff(eroded, eroded_)
 
-img1Cropped = image1[200:260,75:180]
+img1Cropped = image[200:260,75:180]
 img2Cropped = image2[200:260,75:180]
 
 difference_ = difference[200:260,75:180]
 difference2_ = difference2[200:260,75:180]
 
-images = [image1, image2, img1Cropped, img2Cropped, difference,     thresholded,      difference2,  difference_,   difference2_]
-titles = ['image','image2','crop1',     'crop2',  'orjDifference','thresholdedDif', 'pipelinedDif','orjDifZoom','pipelinedDifZoom']
+images = [image, image2,    img1Cropped, img2Cropped,     difference,     thresholded,      difference2,  difference_,   difference2_]
+titles = ['image','image2','img1Cropped','img2Cropped',  'orjDifference','thresholdedDif', 'pipelinedDif','orjDifZoom','pipelinedDifZoom']
 
 plot_images(images, titles, len(images))
+
 #%% CHANGE DETECTION TESTING - Coherence CHANGE DETECTION
+
+"""
+This code calculates the coherence between two input images using the cross-correlation method. It then applies a smoothing window 
+to the coherence values and thresholds them to detect changes in the scene. Finally, it displays the original images, the coherence map, 
+and the detected changes. That also uses "cv2.TM_CCORR_NORMED: Normalized cross-correlation between the template and the image"
+"""
 
 def compute_coherence(img1_data, img2_data):
     
@@ -130,7 +144,7 @@ plot_images(images, titles, len(images))
 
 #%% CHANGE DETECTION TESTING - K-MEANS CLUSTERING BASED CHANGE DETECTION
 
-def unsupervised_change_detection(img1, img2, num_clusters): #TODO try with first image and try to remove differences
+def unsupervised_change_detection(img1, img2, num_clusters, threshold): #TODO try with first image and try to remove differences
     """
     Perform unsupervised change detection using k-means clustering
     """
@@ -156,26 +170,38 @@ def unsupervised_change_detection(img1, img2, num_clusters): #TODO try with firs
     height, width = img1.shape[:2]
     label_img1 = label[:, :width]
     label_img2 = label[:, width:]
-    
+        
+    # Calculate absolute difference between pixel values of the two images
+    diff = np.abs(image.astype(np.int8) - image2.astype(np.int8))
+#    diff[diff <= 20] = 0
+
     # Create binary mask for changed pixels
     change_mask = np.uint8(label_img1 != label_img2) * 255
+    change_mask2 = np.uint8((label_img1 != label_img2) & (diff > threshold))* 255
+ 
     
-    return change_mask
+    return change_mask, change_mask2
 
-applyLeeFilter = True
-if True == applyLeeFilter:
-    image = lee_filter(image, window_size=5)
-    image2 = lee_filter(image2, window_size=5)
+#applyLeeFilter = True;
+#if True == applyLeeFilter:
+#    image = lee_filter(image, window_size=5)
+#    image2 = lee_filter(image2, window_size=5)
 
 # Perform unsupervised change detection
 num_clusters = 2  # Assuming two classes: unchanged and changed
-change_mask = unsupervised_change_detection(image1, image2, num_clusters)
+change_mask, change_mask2 = unsupervised_change_detection(image, image2, num_clusters, 20)
 
-image1_crop = image1[200:260,75:180]
+image1_crop = image[200:260,75:180]
 image2_crop = image2[200:260,75:180]
 change_crop = change_mask[200:260,75:180]
-
-images = [image1,   image2,     change_mask,    image1_crop, image2_crop,   change_crop]
-titles = ['image1','image2','k-means changes', 'image1_crop','image2_crop','changes diff']
+change_crop2 = change_mask2[200:260,75:180]
+    
+images = [image,   image2,     change_mask,     change_mask2,       image1_crop, image2_crop,   change_crop, change_crop2]
+titles = ['image1','image2','k-means changes', 'k-means with 20', 'image1_crop','image2_crop','k changes diff','k changes diff 20']
 
 plot_images(images, titles, len(images))
+
+#%%
+
+i = np.abs(image.astype(np.int8) - image2.astype(np.int8))
+i[i <= 20] = 0
