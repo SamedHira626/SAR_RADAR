@@ -14,7 +14,9 @@ if 1:
     image2 = cv2.imread('media/small2.png', cv2.IMREAD_GRAYSCALE)
     img1Cropped = applyCropping(image, x1, x2, y1, y2)
     img2Cropped = applyCropping(image2, x1, x2, y1, y2)
-    cv2.circle(image2, (95,240), 10, (60,60,60), cv2.FILLED)
+    damage = np.random.randint(60, 120, size=(20, 50), dtype=np.uint8)
+    image2[230:250,80:130] = damage
+#    cv2.circle(image2, (95,240), 10, (60,60,60), cv2.FILLED)
 
 else:
     x1, x2, y1, y2 = [200, 900, 300, 700]
@@ -73,10 +75,6 @@ filter1 = lee
 filter2 = lee2
 img1Cropped = leeCrop
 img2Cropped = leeCrop2
-
-damage = np.random.randint(40, 101, size=(20, 50), dtype=np.uint8)
-
-img2Cropped[30:50,10:60] = damage
 
 # Calculate absolute difference between the two images
 difference = cv2.absdiff(filter1, filter2) #equals to np.abs(image.astype(np.int8) - image2.astype(np.int8))
