@@ -22,6 +22,9 @@ def lee_filter(image, window_size):
 
     # Calculate the filtered image using Lee filter
     filtered_image = mean + ratio * (image - mean)
+    
+    if True: #TODO remove when float32    
+        filtered_image = np.uint8(filtered_image)
 
     return filtered_image
 
@@ -91,7 +94,7 @@ def kuan_filter(image, window_size):
 
 def median_filter(image, window_size):
 
-    filtered_image = cv2.medianBlur(image, window_size)
+    filtered_image = cv2.medianBlur(image, ksize = window_size)
     return filtered_image
 
 def gauss_filter(image, window_size):
@@ -143,11 +146,46 @@ def bilateral_filter(image, window_size):
     filtered_image = cv2.bilateralFilter(image, diameter, sigma_color, sigma_space)
     return filtered_image
 
+def kalman_filter(image):
+
+    image = image.astype(np.float32)
+    
+    # Initialize Kalman filter parameters
+    kalman = cv2.KalmanFilter(2, 1)  # 2 state variables (mean and variance), 1 measurement variable
+    kalman.transitionMatrix = np.array([[1, 1], [0, 1]], dtype=np.float32)  # State transition matrix
+    kalman.measurementMatrix = np.array([[1, 0]], dtype=np.float32)  # Measurement matrix
+    kalman.processNoiseCov = np.array([[0.1, 0], [0, 0.1]], dtype=np.float32)  # Process noise covariance
+    kalman.measurementNoiseCov = np.array([[10]], dtype=np.float32)  # Measurement noise covariance
+    
+    # Initialize state variables (mean and variance)
+    state = np.zeros((2, 1), dtype=np.float32)
+    kalman.statePost = state
+    
+    # Initialize filtered image
+    filtered_image = np.zeros_like(image)
+    
+    # Iterate over each pixel in the image
+    for y in range(image.shape[0]):
+        for x in range(image.shape[1]):
+            # Predict next state
+            predicted_state = kalman.predict()
+            
+            # Update measurement (current pixel intensity)
+            measurement = np.array([[image[y, x]]], dtype=np.float32)
+            
+            # Update Kalman filter with measurement
+            kalman.correct(measurement)
+            
+            # Retrieve filtered pixel value
+            filtered_image[y, x] = kalman.statePost[0]
+    
+    return filtered_image.astype(np.uint8)
+
 def applyPipeline(sar_image, filterType, draw = False):
        
     kernel = np.ones((3,3), dtype = np.uint8)
 
-    _, thresh_img = cv2.threshold(sar_image, thresh = 104, maxval = 255, type = cv2.THRESH_BINARY)
+    _, thresh_img = cv2.threshold(sar_image, thresh = 180, maxval = 255, type = cv2.THRESH_BINARY)
     
     filter_functions = {
         "median": median_filter,

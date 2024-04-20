@@ -4,70 +4,92 @@ import cv2
 import numpy as np
 
 from sarFilters import applyPipeline, median_filter, lee_filter, bilateral_filter
-from morphologicalFunctions import applyClosing
+from morphologicalFunctions import applyClosing, applyOpening, applyDilate, applyCropping
 from plotFunctions import plot_images
 
 if 1:
+    x1, x2, y1, y2 = [200, 260, 75, 180]
     image = sar_image = cv2.imread('media/small.png', cv2.IMREAD_GRAYSCALE)
     image1 = cv2.imread('media/small1.png', cv2.IMREAD_GRAYSCALE)
     image2 = cv2.imread('media/small2.png', cv2.IMREAD_GRAYSCALE)
+    img1Cropped = applyCropping(image, x1, x2, y1, y2)
+    img2Cropped = applyCropping(image2, x1, x2, y1, y2)
     cv2.circle(image2, (95,240), 10, (60,60,60), cv2.FILLED)
 else:
+    x1, x2, y1, y2 = [300, 700, 200, 900]
     image = sar_image = cv2.imread('media/vhf1.jpg', cv2.IMREAD_GRAYSCALE)
     image1 = cv2.imread('media/vhf1.jpg', cv2.IMREAD_GRAYSCALE)
     image2 = cv2.imread('media/vhf2.jpg', cv2.IMREAD_GRAYSCALE)
-
-
+    img1Cropped = applyCropping(image, x1, x2, y1, y2)
+    img2Cropped = applyCropping(image2, x1, x2, y1, y2)
 
 #%% TESTING PIPELINE for NOISE FILTERING ON IMAGES
 
-applyPipeline(sar_image, "median", True)
-#applyPipeline(sar_image, "kuan")
+applyPipeline(sar_image, "median")
 applyPipeline(sar_image, "lee")
+applyPipeline(sar_image, "bilateral")
+#applyPipeline(sar_image, "kuan")
 #applyPipeline(sar_image, "frost")
 #applyPipeline(sar_image, "gamma")
 #applyPipeline(sar_image, "sigma")
-applyPipeline(sar_image, "bilateral")
 
 window_size = 3
 
-median = median_filter(image1, window_size)
-lee = lee_filter(image1, window_size)
-lee2 = np.uint8(lee)
-bilateral = bilateral_filter(image1, window_size)
+median = median_filter(image, window_size)
+lee = lee_filter(image, window_size)
+bilateral = bilateral_filter(image, window_size)
 
-images = [image1, median, lee, bilateral,lee2]
-titles = ['orj','median_filter','lee_filter','bilateral_filter','lee2']    
+medCrop = applyCropping(median, x1, x2, y1, y2)
+leeCrop = applyCropping(lee, x1, x2, y1, y2)
+bilateralCrop = applyCropping(bilateral, x1, x2, y1, y2)
+
+images = [image1,   median,         lee,        bilateral,      img1Cropped, img2Cropped, medCrop, leeCrop, bilateralCrop]
+titles = ['orj','median_filter','lee_filter','bilateral_filter','orj1 crop','orj2 crop', 'medCrop','leeCrop','bilateralCrop' ]    
 plot_images(images, titles, len(images))
 
 #image = cv2.cvtColor(sar_image, cv2.COLOR_GRAY2BGR)
 #applyPipeline(image, "lce")
 
+#%%
+
+median2 = median_filter(image2, window_size)
+lee2 = lee_filter(image2, window_size)
+bilateral2 = bilateral_filter(image2, window_size)
+
+medCrop2 = applyCropping(median2, x1, x2, y1, y2)
+leeCrop2 = applyCropping(lee2, x1, x2, y1, y2)
+bilateralCrop2 = applyCropping(bilateral2, x1, x2, y1, y2)
+
+images = [image1,img1Cropped, img2Cropped, medCrop, leeCrop,  bilateralCrop,   medCrop2, leeCrop2,   bilateralCrop2]
+titles = ['orj','orj1 crop','orj2 crop', 'medCrop','leeCrop','bilateralCrop', 'medCrop2','leeCrop2', 'bilateralCrop2']    
+plot_images(images, titles, len(images))
+
 #%% CHANGE DETECTION TESTING - DIFFERENCING
 
 kernel = np.ones((3,3), dtype = np.uint8)
 
+filter1 = lee
+filter2 = lee2
+img1Cropped = leeCrop
+img2Cropped = leeCrop2
+
 # Calculate absolute difference between the two images
-difference = cv2.absdiff(image, image2) #equals to np.abs(image.astype(np.int8) - image2.astype(np.int8))
+difference = cv2.absdiff(filter1, filter2) #equals to np.abs(image.astype(np.int8) - image2.astype(np.int8))
 
 # Threshold the difference image to get binary mask of changes
-_, thresholded = cv2.threshold(difference, 180, 255, cv2.THRESH_BINARY)
-#thresholded = applyClosing(thresholded, kernel)
+_, thresholded = cv2.threshold(difference, 120, 255, cv2.THRESH_BINARY)
+#thresholded = applyOpening(thresholded, kernel)
+#thresholded = applyDilate(thresholded, kernel, 1)
+thresCl = applyClosing(thresholded, kernel)
+thresClOp = applyOpening(thresCl, kernel)
 
-#applyPipeline(difference, "median")
-_,_,_,_, eroded = applyPipeline(image, "lee")
-_,_,_,_, eroded_ = applyPipeline(image2, "lee")
+thresZoom = applyCropping(thresholded, x1, x2, y1, y2)
+difference_ = applyCropping(difference, x1, x2, y1, y2)
+thresClOpZoom = applyCropping(thresClOp, x1, x2, y1, y2)
+#difference_ = difference[x1:x2,y1:y2]
 
-difference2 = cv2.absdiff(eroded, eroded_)
-
-img1Cropped = image[200:260,75:180]
-img2Cropped = image2[200:260,75:180]
-
-difference_ = difference[200:260,75:180]
-difference2_ = difference2[200:260,75:180]
-
-images = [image, image2,    img1Cropped, img2Cropped,     difference,     thresholded,      difference2,  difference_,   difference2_]
-titles = ['image','image2','img1Cropped','img2Cropped',  'orjDifference','thresholdedDif', 'pipelinedDif','orjDifZoom','pipelinedDifZoom']
+images = [ filter1, filter2,   img1Cropped,  img2Cropped,     difference,    difference_ ,  thresholded     ,thresZoom , thresClOpZoom]
+titles = ['filter1','filter2','img1Cropped','img2Cropped',  'orjDifference', 'orjDifZoom','thresholded120Dif', 'thresZoom', 'thresh+C+O']
 
 plot_images(images, titles, len(images))
 
@@ -205,3 +227,52 @@ plot_images(images, titles, len(images))
 
 i = np.abs(image.astype(np.int8) - image2.astype(np.int8))
 i[i <= 20] = 0
+
+#%%
+
+import cv2
+import numpy as np
+
+def apply_kalman_filter(image):
+
+    image = image.astype(np.float32)
+    
+    # Initialize Kalman filter parameters
+    kalman = cv2.KalmanFilter(2, 1)  # 2 state variables (mean and variance), 1 measurement variable
+    kalman.transitionMatrix = np.array([[1, 1], [0, 1]], dtype=np.float32)  # State transition matrix
+    kalman.measurementMatrix = np.array([[1, 0]], dtype=np.float32)  # Measurement matrix
+    kalman.processNoiseCov = np.array([[0.1, 0], [0, 0.1]], dtype=np.float32)  # Process noise covariance
+    kalman.measurementNoiseCov = np.array([[10]], dtype=np.float32)  # Measurement noise covariance
+    
+    # Initialize state variables (mean and variance)
+    state = np.zeros((2, 1), dtype=np.float32)
+    kalman.statePost = state
+    
+    # Initialize filtered image
+    filtered_image = np.zeros_like(image)
+    
+    # Iterate over each pixel in the image
+    for y in range(image.shape[0]):
+        for x in range(image.shape[1]):
+            # Predict next state
+            predicted_state = kalman.predict()
+            
+            # Update measurement (current pixel intensity)
+            measurement = np.array([[image[y, x]]], dtype=np.float32)
+            
+            # Update Kalman filter with measurement
+            kalman.correct(measurement)
+            
+            # Retrieve filtered pixel value
+            filtered_image[y, x] = kalman.statePost[0]
+    
+    return filtered_image.astype(np.uint8)
+
+# Apply Kalman filter
+filtered_image = apply_kalman_filter(image)
+
+
+images = [image,   image2,     sar_image,     filtered_image, ]
+titles = ['image1','image2','k-means changes', 'k-means with 20']
+
+plot_images(images, titles, len(images))

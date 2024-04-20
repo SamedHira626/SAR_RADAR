@@ -24,6 +24,10 @@ def applyOpening(image, kernel):
     opened = cv2.morphologyEx(image.astype(np.float32), cv2.MORPH_OPEN, kernel)
     return opened
 
+def applyCropping(image, x1, x2, y1, y2):   
+    crop = image[x1:x2,y1:y2]
+    return crop
+
 """
 Erosion: In image processing, erosion is a morphological operation that works by "eroding away" the boundaries of regions of foreground pixels 
 (typically white pixels) in an image. It involves moving a structuring element (a small matrix) over the image and replacing each pixel with 
