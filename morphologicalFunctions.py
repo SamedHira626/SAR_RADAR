@@ -25,7 +25,7 @@ def applyOpening(image, kernel):
     return opened
 
 def applyCropping(image, x1, x2, y1, y2):   
-    crop = image[x1:x2,y1:y2]
+    crop = image[y1:y2,x1:x2]
     return crop
 
 """
