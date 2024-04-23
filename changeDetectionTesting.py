@@ -3,7 +3,7 @@
 import cv2
 import numpy as np
 
-from sarFilters import applyPipeline, median_filter, lee_filter, bilateral_filter
+from sarFilters import applyPipeline, median_filter, lee_filter, bilateral_filter, gamma_filter
 from morphologicalFunctions import applyClosing, applyOpening, applyDilate, applyCropping
 from plotFunctions import plot_images
 
@@ -30,8 +30,8 @@ else:
 
 applyPipeline(sar_image, "median")
 applyPipeline(sar_image, "lee")
-applyPipeline(sar_image, "bilateral", True)
-applyPipeline(sar_image, "gamma", True)
+applyPipeline(sar_image, "bilateral")
+applyPipeline(sar_image, "gamma")
 #applyPipeline(sar_image, "kuan")
 #applyPipeline(sar_image, "frost")
 #applyPipeline(sar_image, "sigma")
@@ -41,13 +41,15 @@ window_size = 3
 median = median_filter(image, window_size)
 lee = lee_filter(image, window_size)
 bilateral = bilateral_filter(image, window_size)
+gamma = gamma_filter(image, window_size, gamma = 2.0)
 
 medCrop = applyCropping(median, x1, x2, y1, y2)
 leeCrop = applyCropping(lee, x1, x2, y1, y2)
 bilateralCrop = applyCropping(bilateral, x1, x2, y1, y2)
+gammaCrop = applyCropping(gamma, x1, x2, y1, y2)
 
-images = [image1,   median,         lee,        bilateral,      img1Cropped, img2Cropped, medCrop, leeCrop, bilateralCrop]
-titles = ['orj','median_filter','lee_filter','bilateral_filter','orj1 crop','orj2 crop', 'medCrop','leeCrop','bilateralCrop' ]    
+images = [image1,   median,         lee,        bilateral,      gamma,  medCrop, leeCrop, bilateralCrop, gammaCrop]
+titles = ['orj','median_filter','lee_filter','bilateral_filter','gamma', 'medCrop','leeCrop','bilateralCrop','gammaCrop']    
 plot_images(images, titles, len(images))
 
 #image = cv2.cvtColor(sar_image, cv2.COLOR_GRAY2BGR)
@@ -58,13 +60,17 @@ plot_images(images, titles, len(images))
 median2 = median_filter(image2, window_size)
 lee2 = lee_filter(image2, window_size)
 bilateral2 = bilateral_filter(image2, window_size)
+gamma2 = gamma_filter(image2, window_size, gamma = 2.0)
 
 medCrop2 = applyCropping(median2, x1, x2, y1, y2)
 leeCrop2 = applyCropping(lee2, x1, x2, y1, y2)
 bilateralCrop2 = applyCropping(bilateral2, x1, x2, y1, y2)
+gammaCrop2 = applyCropping(gamma2, x1, x2, y1, y2)
 
-images = [image1,img1Cropped, img2Cropped, medCrop, leeCrop,  bilateralCrop,   medCrop2, leeCrop2,   bilateralCrop2]
-titles = ['orj','orj1 crop','orj2 crop', 'medCrop','leeCrop','bilateralCrop', 'medCrop2','leeCrop2', 'bilateralCrop2']    
+#images = [img1Cropped, img2Cropped, medCrop, leeCrop,  bilateralCrop,   medCrop2, leeCrop2,   bilateralCrop2, gammaCrop2]
+#titles = ['orj1 crop','orj2 crop', 'medCrop','leeCrop','bilateralCrop', 'medCrop2','leeCrop2', 'bilateralCrop2', 'gammaCrop2']    
+images = [medCrop, leeCrop,  bilateralCrop, gammaCrop,  medCrop2, leeCrop2,   bilateralCrop2, gammaCrop2]
+titles = ['medCrop','leeCrop','bilateralCrop','gammaCrop', 'medCrop2','leeCrop2', 'bilateralCrop2', 'gammaCrop2']  
 plot_images(images, titles, len(images))
 
 #%% CHANGE DETECTION TESTING - DIFFERENCING
@@ -301,14 +307,35 @@ def despeckle_sar(image, wavelet='haar', level=1, thresholding='soft', threshold
 
 despeckled_image = despeckle_sar(image)
 
-images = [image,   image2,     despeckled_image,     filtered_image, ]
+images = [image,   image2,     despeckled_image,     filtered_image]
 titles = ['image1','image2','despeckled_image', 'k-means with 20']
 
 plot_images(images, titles, len(images))
 
+#%%
+"""
+One common application of cross-correlation is template matching, where you 
+have a small template image and you want to find it within a larger search image.
+"""
 
+# Perform cross-correlation
+result = cv2.matchTemplate(image, image2, cv2.TM_CCOEFF_NORMED)
 
+# Find the location of the maximum correlation
+min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
 
+# Get the width and height of the template image
+w, h = image2.shape[::-1]
+
+# Draw a rectangle around the matched region
+top_left = max_loc
+bottom_right = (top_left[0] + w, top_left[1] + h)
+cv2.rectangle(image, top_left, bottom_right, 255, 2)
+
+images = [image,   image2 ]
+titles = ['image1','image2']
+
+plot_images(images, titles, len(images))
 
 
 

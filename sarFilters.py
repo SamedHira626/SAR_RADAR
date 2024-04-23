@@ -203,7 +203,7 @@ def applyPipeline(sar_image, filterType, draw = False):
         filtered = filter_function(sar_image, window_size=5)
         filteredThresh = filter_function(thresh_img, window_size=5)
     
-    threshClosing = cv2.morphologyEx(filteredThresh.astype(np.float32), cv2.MORPH_CLOSE, kernel)
+    threshClosing = cv2.morphologyEx(filtered.astype(np.float32), cv2.MORPH_CLOSE, kernel)
  
     eroded1 = cv2.erode(threshClosing, kernel, iterations = 1)
     eroded2 = cv2.erode(threshClosing, kernel, iterations = 2)
