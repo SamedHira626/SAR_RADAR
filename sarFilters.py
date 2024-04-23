@@ -29,22 +29,16 @@ def lee_filter(image, window_size):
     return filtered_image
 
 def gamma_filter(image, window_size, gamma):
-    # Convert the input image to floating-point representation
-    image_float = np.float32(image)
-
-    # Define the filter window
-    filter_window = np.ones((window_size, window_size))
-
-    # Apply gamma correction to the image
-    gamma_corrected = cv2.pow(image_float, gamma)
-
-    # Apply filter to the gamma-corrected image
-    filtered_image = cv2.filter2D(gamma_corrected, -1, filter_window)
-
-    # Convert the filtered image back to the original data type
-    filtered_image = np.uint8(filtered_image)
-
-    return filtered_image
+    # Normalize pixel values to the range [0, 1]
+    normalized_image = image.astype('float32') / 255.0
+    
+    # Apply gamma correction
+    gamma_corrected_image = np.power(normalized_image, gamma)
+    
+    # Denormalize the image to the original range [0, 255]
+    gamma_corrected_image = (gamma_corrected_image * 255).astype('uint8')
+    
+    return gamma_corrected_image
 
 def frost_filter(image, window_size, alpha):
     # Convert image to float32
@@ -191,7 +185,7 @@ def applyPipeline(sar_image, filterType, draw = False):
         "median": median_filter,
         "gauss": gauss_filter,
         "lee": lee_filter,
-        "gamma": lambda img, window_size= 5, gamma=1.5: gamma_filter(img, window_size, gamma),
+        "gamma": lambda img, window_size= 5, gamma=2.0: gamma_filter(img, window_size, gamma),
         "frost": lambda img, window_size= 5, alpha=1.5: frost_filter(img, window_size, alpha),
         "kuan": kuan_filter,
         "sigma": sigma_filter,

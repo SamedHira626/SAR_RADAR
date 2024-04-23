@@ -6,8 +6,8 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-from morphologicalFunctions import applyErode, applyDilate, applyOpening, applyClosing, applyThreshold
-from sarFilters import lee_filter, gamma_filter, kuan_filter, median_filter, sigma_filter, local_contrast_enhancement, frost_filter
+from morphologicalFunctions import applyErode, applyDilate, applyOpening, applyClosing, applyThreshold, applyCropping
+from sarFilters import lee_filter, gamma_filter, kuan_filter, median_filter, sigma_filter, local_contrast_enhancement, frost_filter, bilateral_filter
 from plotFunctions import plot_images
 
 sar_image = cv2.imread('media/small.png', cv2.IMREAD_GRAYSCALE)
@@ -60,12 +60,14 @@ plot_images(images, titles, 6)
 _, thresh_img = cv2.threshold(sar_image, thresh = 180, maxval = 255, type = cv2.THRESH_BINARY) 
 lee = lee_filter(sar_image, window_size=5)
 
-gamma = gamma_filter(sar_image, window_size=3, gamma=1.5)
+gamma = gamma_filter(sar_image, window_size=3, gamma=2.0)
 
 frost = frost_filter(sar_image, window_size=3, alpha=1.5)
-frost2 = frost_filter2(sar_image, window_size=3, alpha=1.5)
+#frost2 = frost_filter2(sar_image, window_size=3, alpha=1.5)
 
 kuan = kuan_filter(sar_image, window_size=5)
+
+bilateral = bilateral_filter(sar_image, window_size=5)
 
 median = median_filter(sar_image, window_size=5)
 medianThresh = median_filter(thresh_img, window_size=5)
@@ -75,7 +77,10 @@ sigma = sigma_filter(sar_image, window_size = 5)
 image = cv2.cvtColor(sar_image, cv2.COLOR_GRAY2BGR)
 lce = local_contrast_enhancement(image, neighborhood_size=15, clip_limit=2.0) #needs 3 channel image
 
-images = [sar_image, thresh_img, lee, gamma, frost, kuan, median, medianThresh, lce]
-titles = ['Original Image','Threshold SAR Image','lee', 'gamma', 'frost', 'kuan', 'median', 'thresh+median', 'lce']
+images = [sar_image, thresh_img,  lee,   gamma,       frost, kuan,    median,    bilateral,   lce]
+titles = ['Original','Threshold','lee', 'gamma 2.0', 'frost', 'kuan', 'median', 'bilateral', 'lce']
 
-plot_images(images, titles, 9)
+x1, x2, y1, y2 = [75, 180, 200, 260]
+images = [applyCropping(image, x1, x2, y1, y2) for image in images] #to crop images
+
+plot_images(images, titles, len(images))

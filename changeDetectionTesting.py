@@ -30,10 +30,10 @@ else:
 
 applyPipeline(sar_image, "median")
 applyPipeline(sar_image, "lee")
-applyPipeline(sar_image, "bilateral")
+applyPipeline(sar_image, "bilateral", True)
+applyPipeline(sar_image, "gamma", True)
 #applyPipeline(sar_image, "kuan")
 #applyPipeline(sar_image, "frost")
-#applyPipeline(sar_image, "gamma")
 #applyPipeline(sar_image, "sigma")
 
 window_size = 3
@@ -228,11 +228,6 @@ plot_images(images, titles, len(images))
 
 #%%
 
-i = np.abs(image.astype(np.int8) - image2.astype(np.int8))
-i[i <= 20] = 0
-
-#%%
-
 import cv2
 import numpy as np
 
@@ -275,7 +270,47 @@ def apply_kalman_filter(image):
 filtered_image = apply_kalman_filter(image)
 
 
-images = [image,   image2,     sar_image,     filtered_image, ]
-titles = ['image1','image2','k-means changes', 'k-means with 20']
+#images = [image,   image2,     sar_image,     filtered_image, ]
+#titles = ['image1','image2','k-means changes', 'k-means with 20']
+#
+#plot_images(images, titles, len(images))
+
+#%%
+
+import pywt
+
+def despeckle_sar(image, wavelet='haar', level=1, thresholding='soft', threshold=0.1):
+    # Perform wavelet decomposition
+    coeffs = pywt.wavedec2(image, wavelet, level=level)
+
+    # Extract approximation coefficients and detail coefficients
+    approx_coeffs = coeffs[0]
+    detail_coeffs = coeffs[1:]
+
+    # Threshold the detail coefficients
+    thresholded_coeffs = [pywt.threshold(d, threshold, mode=thresholding) for d in detail_coeffs]
+
+    # Reconstruct the image
+    despeckled_image = pywt.waverec2([approx_coeffs] + thresholded_coeffs, wavelet)
+
+    # Clip values to valid range
+    despeckled_image = np.clip(despeckled_image, 0, 255)
+
+    return despeckled_image.astype('uint8')
+
+
+despeckled_image = despeckle_sar(image)
+
+images = [image,   image2,     despeckled_image,     filtered_image, ]
+titles = ['image1','image2','despeckled_image', 'k-means with 20']
 
 plot_images(images, titles, len(images))
+
+
+
+
+
+
+
+
+
